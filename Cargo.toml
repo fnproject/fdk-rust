@@ -1,8 +1,9 @@
 [package]
 name = "fdk"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Dario Domizioli <dario.domizioli@gmail.com>"]
 description = "Experimental Function Development Kit for the Fn Project serverless platform"
+repository = "https://github.com/fnproject/fdk-rust"
 keywords = ["Fn", "serverless", "FaaS"]
 categories = ["web-programming", "development-tools"]
 license = "Apache-2.0"
