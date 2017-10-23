@@ -1,6 +1,6 @@
 [package]
 name = "fdk"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Dario Domizioli <dario.domizioli@gmail.com>"]
 description = "Experimental Function Development Kit for the Fn Project serverless platform"
 repository = "https://github.com/fnproject/fdk-rust"
