@@ -1,5 +1,7 @@
 # FDK: Fn Function Development Kit
 
+<a href="https://crates.io/crates/fdk"><img src="https://img.shields.io/crates/v/fdk.svg" alt="fdk’s current version badge" title="fdk’s current version badge" /></a>
+
 This crate implements an experimental Function Development Kit for the
 [Fn Project](http://www.fnproject.io) serverless platform.
 
@@ -7,10 +9,7 @@ The API provided hides the implementation details of the Fn platform
 contract and allows a user to focus on the code and easily implement
 function-as-a-service programs.
 
-<img src="https://img.shields.io/crates/v/fdk.svg" alt="fdk’s current version badge" title="fdk’s current version badge" />
-<img src="https://img.shields.io/badge/maintenance-experimental-blue.svg" alt="Maintenance intention for this crate" title="Maintenance intention for this crate"/>
-
-## [API Documentation](https://docs.rs/fdk)
+### [API Documentation](https://docs.rs/fdk)
 
 # Usage
 
