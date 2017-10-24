@@ -1,13 +1,12 @@
 # Rusty functions
 
-After the Gophers came the Rustaceans, and I for one welcome our arthropod
-overlords in their oxidized iron carapaces.
+After the Gophers came the Rustaceans, and I for one welcome our arthropod overlords in their oxidized iron carapaces.
 
 What am I talking about? Well, I am making geeky [Rust](https://rust-lang.org) references of course. My colleagues in the [Fn project](https://fnproject.io) have already been subjected to my obsession with the Rust language, and therefore I have decided to inflict it onto the world of Fn users too.
 
 Let me introduce you to [fdk-rust](https://github.com/fnproject/fdk-rust) and the corresponding [fdk crate](https://crates.io/crates/fdk).
 
-The purpose of a Function Development Kit is to provide an easy-to-use and idiomatic API for writing Fn functions, so that developers can focus on their code and let the library take care of pesky tasks like input/output encoding/decoding, access to Fn configuration, and so on.
+The purpose of a Function Development Kit is to provide an easy-to-use and language-idiomatic API for writing Fn functions, so that developers can focus on their code and let the library take care of pesky tasks like input/output encoding/decoding, access to Fn configuration, and so on.
 
 This work is still experimental and we would definitely welcome input from the Rust community to improve the implementation and the design.
 
@@ -19,7 +18,7 @@ That said, the FDK currently provides:
 
 ## Hello, somebody!
 
-Now, just how good is this FDK at reducing boilerplate and hiding complexity from the developer? Let's look at some code:
+Now, just how good is this FDK at hiding complexity from the developer? Let's look at some code:
 
 ```rust
 extern crate fdk;
@@ -146,6 +145,6 @@ mod tests {
 }
 ```
 
-And in one fell swoop, we have tested our function without even needing to spin up a Fn environment. The `FunctionTestbench` simulates all the conditions of the Fn contract and then invokes the runtime - so we are genuinely testing the production behavior.
+By using the `FunctionTestbench` wrapper, we have tested our function without even needing to spin up a Fn environment. The `FunctionTestbench` simulates all the conditions of the Fn contract and then invokes the runtime - so we are genuinely testing the production behavior.
 
-If you have read this far and you are a Rustacean like me, I hope I have piqued your interest. Head to [fdk-rust](https://github.com/fnproject/fdk-rust) and feel free to tell us that the implementation is bad or not idiomatic enough. This is all still experimental and subject to change.
+If you have read this far and you are a Rustacean like me, I hope I have piqued your interest. Head to [fdk-rust](https://github.com/fnproject/fdk-rust) and feel free to look at our implementation - it may have issues or it may not be idiomatic enough, but this is all still experimental and subject to change, so opinions are welcome.
