@@ -88,7 +88,9 @@ impl<'a> Iterator for DefaultCodec<'a> {
                             .iter()
                             .filter(|kv| kv.0.to_lowercase().starts_with(HEADER_PREFIX))
                             .fold(HashMap::new(), |mut hs, kv| {
-                                let k: String = kv.0.clone().split_off(HEADER_PREFIX.len());
+                                let k: String = kv.0.clone()
+                                    .split_off(HEADER_PREFIX.len())
+                                    .replace("_", "-");
                                 hs.insert(k, kv.1.clone());
                                 hs
                             })
