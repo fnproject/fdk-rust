@@ -1,5 +1,7 @@
 # FDK: Fn Function Development Kit
 
+*WARNING* : This repo is not actively maintained and will not work with recent versions of Fn - if you are interested in contributing/fixing Rust support please get in touch on [Fn Slack](https://fnproject.slack.com/join/shared_invite/MjIwNzc5MTE4ODg3LTE1MDE0NTUyNTktYThmYmRjZDUwOQ)
+
 <a href="https://crates.io/crates/fdk"><img src="https://img.shields.io/crates/v/fdk.svg" alt="fdk’s current version badge" title="fdk’s current version badge" /></a>
 
 This crate implements an experimental Function Development Kit for the
