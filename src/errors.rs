@@ -1,9 +1,10 @@
-use hyper;
+use hyper::Body;
 
+use std::env::VarError;
 use std::error::Error;
 use std::fmt;
 
-use hyper_utils::{client_error, server_error};
+use crate::hyper_utils::{client_error, server_error};
 
 /// An `Error` which can occur during the execution of a function. Depending on
 /// which kind of error it is, it could signify that the function runtime is
@@ -12,16 +13,16 @@ use hyper_utils::{client_error, server_error};
 #[derive(Debug)]
 pub struct FunctionError {
     kind: FunctionErrorKind,
-    error: Box<Error + Send + Sync>,
+    error: Box<dyn Error + Send + Sync>,
 }
 
 impl FunctionError {
     fn new<E>(kind: FunctionErrorKind, error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError {
-            kind: kind,
+            kind,
             error: error.into(),
         }
     }
@@ -30,7 +31,7 @@ impl FunctionError {
     /// was genuinely invalid.
     pub fn invalid_input<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::InvalidInput, error)
     }
@@ -39,7 +40,7 @@ impl FunctionError {
     /// was genuinely bad (for example, headers or data were missing).
     pub fn bad_request<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::BadRequest, error)
     }
@@ -48,7 +49,7 @@ impl FunctionError {
     /// has failed; this error compromises the function runtime.
     pub fn initialization<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::InitializationError, error)
     }
@@ -58,7 +59,7 @@ impl FunctionError {
     /// function runtime.
     pub fn coercion<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::CoercionError, error)
     }
@@ -68,7 +69,7 @@ impl FunctionError {
     /// runtime.
     pub fn io<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::IOError, error)
     }
@@ -77,7 +78,7 @@ impl FunctionError {
     /// error compromises the function runtime.
     pub fn other<E>(error: E) -> FunctionError
     where
-        E: Into<Box<Error + Send + Sync>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         FunctionError::new(FunctionErrorKind::OtherError, error)
     }
@@ -95,18 +96,28 @@ impl fmt::Display for FunctionError {
     }
 }
 
-impl Error for FunctionError {
-    fn description(&self) -> &str {
-        self.error.description()
-    }
+impl Error for FunctionError {}
 
-    fn cause(&self) -> Option<&Error> {
-        self.error.cause()
+impl From<VarError> for FunctionError {
+    fn from(e: VarError) -> Self {
+        FunctionError::initialization(e)
     }
 }
 
-impl Into<hyper::Response> for FunctionError {
-    fn into(self) -> hyper::Response {
+impl From<hyper::Error> for FunctionError {
+    fn from(e: hyper::Error) -> Self {
+        FunctionError::other(format!("hyper error: {}", e))
+    }
+}
+
+impl From<std::io::Error> for FunctionError {
+    fn from(e: std::io::Error) -> Self {
+        FunctionError::io(e)
+    }
+}
+
+impl Into<hyper::Response<Body>> for FunctionError {
+    fn into(self) -> hyper::Response<Body> {
         if self.is_user_error() {
             client_error(format!("{}", self.error).into_bytes())
         } else {
@@ -147,8 +158,7 @@ impl FunctionErrorKind {
     /// True if the error is a user error and can be reported as such.
     pub fn is_user_error(&self) -> bool {
         match *self {
-            FunctionErrorKind::InvalidInput |
-            FunctionErrorKind::BadRequest => true,
+            FunctionErrorKind::InvalidInput | FunctionErrorKind::BadRequest => true,
             _ => false,
         }
     }

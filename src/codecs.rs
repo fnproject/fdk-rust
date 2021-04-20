@@ -4,21 +4,22 @@ use uuid;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::io::{Read, Write, BufReader};
+use std::io::{BufReader, Read, Write};
 use std::net;
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::thread;
 
-use errors::FunctionError;
-use hyper_utils::{write_response_body, write_response_full};
+use crate::errors::FunctionError;
+use crate::hyper_utils::{write_response_body, write_response_full};
 
-pub trait InputOutputCodec
-    : Iterator<Item = Result<hyper::Request, FunctionError>> {
-    fn try_write(&mut self, resp: hyper::Response, writer: &mut Write)
-        -> Result<(), FunctionError>;
+pub trait InputOutputCodec: Iterator<Item = Result<hyper::Request<T>, FunctionError>> {
+    fn try_write(
+        &mut self,
+        resp: hyper::Response<Vec<u8>>,
+        writer: &mut dyn Write,
+    ) -> Result<(), FunctionError>;
 }
-
 
 pub struct DefaultCodec<'a> {
     input: Box<Read>,
@@ -48,35 +49,31 @@ impl<'a> Iterator for DefaultCodec<'a> {
                     Ok(_) => {
                         // Method, URI, version
                         let method = match self.environment.get("FN_METHOD") {
-                            Some(s) => {
-                                match hyper::Method::from_str(s) {
-                                    Ok(m) => m,
-                                    Err(_) => {
-                                        return Some(Err(FunctionError::other(
-                                            "Fatal: FN_METHOD set to an invalid HTTP method.",
-                                        )))
-                                    }
+                            Some(s) => match hyper::Method::from_str(s) {
+                                Ok(m) => m,
+                                Err(_) => {
+                                    return Some(Err(FunctionError::other(
+                                        "Fatal: FN_METHOD set to an invalid HTTP method.",
+                                    )))
                                 }
-                            }
+                            },
                             None => {
                                 return Some(Err(FunctionError::other("Fatal: FN_METHOD not set.")))
                             }
                         };
                         let uri = match self.environment.get("FN_REQUEST_URL") {
-                            Some(s) => {
-                                match hyper::Uri::from_str(s) {
-                                    Ok(u) => u,
-                                    Err(_) => {
-                                        return Some(Err(FunctionError::other(
-                                            "Fatal: FN_REQUEST_URL set to an invalid URL.",
-                                        )))
-                                    }
+                            Some(s) => match hyper::Uri::from_str(s) {
+                                Ok(u) => u,
+                                Err(_) => {
+                                    return Some(Err(FunctionError::other(
+                                        "Fatal: FN_REQUEST_URL set to an invalid URL.",
+                                    )))
                                 }
-                            }
+                            },
                             None => {
-                                return Some(
-                                    Err(FunctionError::other("Fatal: FN_REQUEST_URL not set.")),
-                                )
+                                return Some(Err(FunctionError::other(
+                                    "Fatal: FN_REQUEST_URL not set.",
+                                )))
                             }
                         };
                         let version = hyper::HttpVersion::Http11;
@@ -88,9 +85,10 @@ impl<'a> Iterator for DefaultCodec<'a> {
                             .iter()
                             .filter(|kv| kv.0.to_lowercase().starts_with(HEADER_PREFIX))
                             .fold(HashMap::new(), |mut hs, kv| {
-                                let k: String = kv.0.clone()
-                                    .split_off(HEADER_PREFIX.len())
-                                    .replace("_", "-");
+                                let k: String =
+                                    kv.0.clone()
+                                        .split_off(HEADER_PREFIX.len())
+                                        .replace("_", "-");
                                 hs.insert(k, kv.1.clone());
                                 hs
                             })
@@ -117,7 +115,7 @@ impl<'a> Iterator for DefaultCodec<'a> {
 impl<'a> InputOutputCodec for DefaultCodec<'a> {
     fn try_write(
         &mut self,
-        resp: hyper::Response,
+        resp: hyper::Response<Vec<u8>>,
         writer: &mut Write,
     ) -> Result<(), FunctionError> {
         // The 'default' contract for Fn does not allow to set headers or status
@@ -126,9 +124,8 @@ impl<'a> InputOutputCodec for DefaultCodec<'a> {
     }
 }
 
-
 pub struct HttpCodec {
-    event_rx: mpsc::Receiver<Option<Result<hyper::Request, FunctionError>>>,
+    event_rx: mpsc::Receiver<Option<Result<hyper::Request<T>, FunctionError>>>,
 }
 
 impl HttpCodec {
@@ -229,7 +226,8 @@ impl HttpCodec {
                     "HEAD * HTTP/1.1\r\n{}: {}\r\n\r\n",
                     shutdown_key_uuid.hyphenated().to_string(),
                     shutdown_value_uuid.hyphenated().to_string()
-                ).as_bytes(),
+                )
+                .as_bytes(),
             ) {
                 Ok(_) => (),
                 Err(e) => {
@@ -242,7 +240,9 @@ impl HttpCodec {
         });
 
         // Pull thread: just consume bytes from the stream.
-        thread::spawn(move || { stream_for_pull.bytes().count(); });
+        thread::spawn(move || {
+            stream_for_pull.bytes().count();
+        });
 
         // Return the fully functional codec
         codec
@@ -284,15 +284,14 @@ impl hyper::server::Service for ChannelPoster {
     fn call(&self, req: hyper::Request) -> Self::Future {
         let local_tx = self.event_tx.clone();
 
-        let is_shutdown = match req.headers().get_raw(&self.shutdown_key_uuid
-            .hyphenated()
-            .to_string()) {
-            Some(v) => {
-                match v.one() {
-                    Some(vv) => vv == self.shutdown_value_uuid.hyphenated().to_string().as_bytes(),
-                    None => false,
-                }
-            }
+        let is_shutdown = match req
+            .headers()
+            .get_raw(&self.shutdown_key_uuid.hyphenated().to_string())
+        {
+            Some(v) => match v.one() {
+                Some(vv) => vv == self.shutdown_value_uuid.hyphenated().to_string().as_bytes(),
+                None => false,
+            },
             None => false,
         };
 

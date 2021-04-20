@@ -199,18 +199,21 @@
 //! ```
 extern crate futures;
 extern crate hyper;
+extern crate lazy_static;
+extern crate object_pool;
 extern crate serde_json;
-extern crate uuid;
+extern crate tokio;
+extern crate url;
 
-mod codecs;
+//mod codecs;
 mod coercions;
 mod context;
 mod errors;
 mod function;
 mod hyper_utils;
+mod socket;
 
 pub use coercions::{InputCoercible, OutputCoercible};
 pub use context::RuntimeContext;
 pub use errors::FunctionError;
-pub use function::{Function, FunctionTestbench, STATELESS};
-pub use hyper_utils::body_as_bytes;
+pub use function::Function;
