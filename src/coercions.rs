@@ -1,109 +1,101 @@
-use hyper;
-use serde_json;
+use crate::FunctionError;
+use serde::{Deserialize, Serialize};
 
-use errors::FunctionError;
-use hyper_utils::{no_content, success, body_as_bytes};
+#[derive(Clone, Debug)]
+pub enum ContentType {
+    JSON,
+    YAML,
+    XML,
+    Plain,
+    URLEncoded,
+}
 
-
-/// An `InputCoercible` type can be generated from a `hyper::Request`.
+/// An `InputCoercible` type can be generated from a `Vec<u8>`.
 pub trait InputCoercible: Sized {
-    /// Consume the request and try to convert it into an instance of the type.
-    /// If this fails, report an appropriate FunctionError.
-    fn try_decode(req: hyper::Request) -> Result<Self, FunctionError>;
+    fn try_decode_plain(input: Vec<u8>) -> Result<Self, FunctionError>;
+    fn try_decode_json(input: Vec<u8>) -> Result<Self, FunctionError>;
+    fn try_decode_xml(input: Vec<u8>) -> Result<Self, FunctionError>;
+    fn try_decode_yaml(input: Vec<u8>) -> Result<Self, FunctionError>;
+    fn try_decode_urlencoded(input: Vec<u8>) -> Result<Self, FunctionError>;
 }
 
-/// An `OutputCoercible` type can be converted to a `hyper::Response`.
-pub trait OutputCoercible {
-    /// Consume an instance of the type and try to convert it into a response.
-    /// If this fails, report an appropriate FunctionError.
-    fn try_encode(self) -> Result<hyper::Response, FunctionError>;
+/// An `OutputCoercible` type can be converted to a `Vec<u8>`.
+pub trait OutputCoercible: Sized {
+    fn try_encode_json(self) -> Result<Vec<u8>, FunctionError>;
+    fn try_encode_xml(self) -> Result<Vec<u8>, FunctionError>;
+    fn try_encode_yaml(self) -> Result<Vec<u8>, FunctionError>;
+    fn try_encode_plain(self) -> Result<Vec<u8>, FunctionError>;
+    fn try_encode_urlencoded(self) -> Result<Vec<u8>, FunctionError>;
 }
 
-/// Request is coercible to itself.
-impl InputCoercible for hyper::Request {
-    fn try_decode(req: hyper::Request) -> Result<hyper::Request, FunctionError> {
-        Ok(req)
+impl<T: for<'de> Deserialize<'de>> InputCoercible for T {
+    fn try_decode_plain(input: Vec<u8>) -> Result<Self, FunctionError> {
+        match serde_plain::from_str(&input.iter().map(|&v| v as char).collect::<String>()) {
+            Ok(t) => Ok(t),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
     }
-}
 
-/// Response is coercible to itself.
-impl OutputCoercible for hyper::Response {
-    fn try_encode(self) -> Result<hyper::Response, FunctionError> {
-        Ok(self)
+    fn try_decode_json(input: Vec<u8>) -> Result<Self, FunctionError> {
+        match serde_json::from_slice(input.as_slice()) {
+            Ok(t) => Ok(t),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
     }
-}
 
-/// The empty type is InputCoercible, for simplicity
-impl InputCoercible for () {
-    fn try_decode(_: hyper::Request) -> Result<(), FunctionError> {
-        Ok(())
+    fn try_decode_xml(input: Vec<u8>) -> Result<Self, FunctionError> {
+        match serde_xml_rs::from_str(&input.iter().map(|&v| v as char).collect::<String>()) {
+            Ok(t) => Ok(t),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
     }
-}
 
-/// The empty type is OutputCoercible, for simplicity
-impl OutputCoercible for () {
-    fn try_encode(self) -> Result<hyper::Response, FunctionError> {
-        Ok(no_content())
+    fn try_decode_yaml(input: Vec<u8>) -> Result<Self, FunctionError> {
+        match serde_yaml::from_slice(input.as_slice()) {
+            Ok(t) => Ok(t),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
     }
-}
 
-/// A vector of bytes is InputCoercible, for simplicity
-impl InputCoercible for Vec<u8> {
-    fn try_decode(req: hyper::Request) -> Result<Vec<u8>, FunctionError> {
-        body_as_bytes(req.body())
-    }
-}
-
-/// A vector of bytes is OutputCoercible, for simplicity
-impl OutputCoercible for Vec<u8> {
-    fn try_encode(self) -> Result<hyper::Response, FunctionError> {
-        Ok(success(self))
-    }
-}
-
-/// String is InputCoercible, for simplicity
-impl InputCoercible for String {
-    fn try_decode(req: hyper::Request) -> Result<String, FunctionError> {
-        match body_as_bytes(req.body()) {
-            Ok(v) => {
-                match String::from_utf8(v) {
-                    Ok(s) => Ok(s),
-                    Err(e) => Err(FunctionError::invalid_input(e)),
-                }
-            }
-            Err(e) => Err(e),
+    fn try_decode_urlencoded(input: Vec<u8>) -> Result<Self, FunctionError> {
+        match serde_urlencoded::from_str(&input.iter().map(|&v| v as char).collect::<String>()) {
+            Ok(t) => Ok(t),
+            Err(e) => Err(FunctionError::coercion(e)),
         }
     }
 }
 
-/// String is OutputCoercible, for simplicity
-impl OutputCoercible for String {
-    fn try_encode(self) -> Result<hyper::Response, FunctionError> {
-        Ok(success(self))
-    }
-}
-
-/// serde_json::Value is InputCoercible, for simplicity
-impl InputCoercible for serde_json::Value {
-    fn try_decode(req: hyper::Request) -> Result<serde_json::Value, FunctionError> {
-        match body_as_bytes(req.body()) {
-            Ok(v) => {
-                match serde_json::from_slice(&v) {
-                    Ok(obj) => Ok(obj),
-                    Err(e) => Err(FunctionError::invalid_input(e)),
-                }
-            }
-            Err(e) => Err(e),
-        }
-    }
-}
-
-/// serde_json::Value is OutputCoercible, for simplicity
-impl OutputCoercible for serde_json::Value {
-    fn try_encode(self) -> Result<hyper::Response, FunctionError> {
+impl<T: Serialize> OutputCoercible for T {
+    fn try_encode_json(self) -> Result<Vec<u8>, FunctionError> {
         match serde_json::to_vec(&self) {
-            Ok(v) => Ok(success(v)),
-            Err(e) => Err(FunctionError::io(e)),
+            Ok(vector) => Ok(vector),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
+    }
+    fn try_encode_xml(self) -> Result<Vec<u8>, FunctionError> {
+        match serde_xml_rs::to_string(&self) {
+            Ok(vector) => Ok(vector.chars().map(|ch| ch as u8).collect()),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
+    }
+    fn try_encode_yaml(self) -> Result<Vec<u8>, FunctionError> {
+        match serde_yaml::to_vec(&self) {
+            Ok(vector) => Ok(vector),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
+    }
+
+    fn try_encode_plain(self) -> Result<Vec<u8>, FunctionError> {
+        match serde_plain::to_string(&self) {
+            Ok(vector) => Ok(vector.chars().map(|ch| ch as u8).collect()),
+            Err(e) => Err(FunctionError::coercion(e)),
+        }
+    }
+
+    fn try_encode_urlencoded(self) -> Result<Vec<u8>, FunctionError> {
+        match serde_urlencoded::to_string(&self) {
+            Ok(vector) => Ok(vector.chars().map(|ch| ch as u8).collect()),
+            Err(e) => Err(FunctionError::coercion(e)),
         }
     }
 }

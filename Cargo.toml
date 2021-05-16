@@ -1,18 +1,25 @@
 [package]
+edition = "2018"
 name = "fdk"
-version = "0.1.2"
-authors = ["Dario Domizioli <dario.domizioli@gmail.com>"]
-description = "Experimental Function Development Kit for the Fn Project serverless platform"
+version = "1.0.0"
+authors = ["Dario Domizioli <dario.domizioli@gmail.com>", "Gaurav Saini <hello@gauravsaini.dev>"]
+description = "Function Development Kit for the Fn Project serverless platform"
 repository = "https://github.com/fnproject/fdk-rust"
 keywords = ["Fn", "serverless", "FaaS"]
 categories = ["web-programming", "development-tools"]
 license = "Apache-2.0"
 
-[badges]
-maintenance = { status = "experimental" }
-
 [dependencies]
-hyper = "0.11"
-futures = "0.1"
-serde_json = "1.0"
-uuid = { version = "0.4", features = ["v4"] }
+hyper = { version = "0.14", features = ["full"] }
+tokio = { version = "1.6", features = ["net"] }
+futures = "0.3"
+object-pool = "0.5"
+lazy_static = "1"
+url = "2"
+serde = "1" 
+serde_json = "1" 
+serde_yaml = "0.8"
+serde-xml-rs = "0.4"
+serde_plain = "0.3"
+serde_urlencoded = "0.7"
+clap = "2"
