@@ -52,7 +52,7 @@ jobs:
               cargo login ${FN_CARGO_TOKEN}
 
               # Build and deploy init image
-              pushd images/init && docker build -t fnproject/rust:init: . && popd && docker push fnproject/rust:init
+              pushd images/init && docker build -t fnproject/rust:init . && popd && docker push fnproject/rust:init
 
               ./release.sh
               ./build_image.sh 1.53
