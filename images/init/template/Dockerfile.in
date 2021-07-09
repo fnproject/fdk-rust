@@ -1,0 +1,10 @@
+FROM rust:1.53-alpine3.13 as builder
+WORKDIR /build
+RUN apk add alpine-sdk
+COPY . .
+RUN cargo build --release
+
+FROM alpine:3.13
+WORKDIR /fn
+COPY --from=builder  /build/target/release/{FUNCTION_NAME} .
+CMD ["./{FUNCTION_NAME}"]

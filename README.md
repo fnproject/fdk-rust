@@ -1,54 +1,55 @@
 # FDK: Fn Function Development Kit
 
-*WARNING* : This repo is not actively maintained and will not work with recent versions of Fn - if you are interested in contributing/fixing Rust support please get in touch on [Fn Slack](https://fnproject.slack.com/join/shared_invite/MjIwNzc5MTE4ODg3LTE1MDE0NTUyNTktYThmYmRjZDUwOQ)
+###### Disclaimer: This FDK is experimental and is not actively maintained. It is completely functional as of July 2021, but is not supported.
 
 <a href="https://crates.io/crates/fdk"><img src="https://img.shields.io/crates/v/fdk.svg" alt="fdk’s current version badge" title="fdk’s current version badge" /></a>
-
-This crate implements an experimental Function Development Kit for the
-[Fn Project](http://www.fnproject.io) serverless platform.
 
 The API provided hides the implementation details of the Fn platform
 contract and allows a user to focus on the code and easily implement
 function-as-a-service programs.
-
-### [API Documentation](https://docs.rs/fdk)
 
 # Usage
 
 The Fn platform offers a
 [command line tool](https://github.com/fnproject/fn/blob/master/README.md#quickstart)
 to initialize, build and deploy function projects. Follow the `fn` tool
-quickstart to learn the basics of the Fn platform. Then start a Rust
-function project with:
+quickstart to learn the basics of the Fn platform.
 
-```text
-fn init --runtime=rust <other options to fn command>
-```
+Boilerplate code can be generated using the following command:
+`fn init --init-image=fnproject/rust:init`
 
 The initializer will actually use cargo and generate a cargo binary project
 for the function. It is then possible to specify a dependency as usual.
 
 ```toml
 [dependencies]
-fdk = "0.1"
+fdk = ">=0.2.0"
 ```
 
-# Simple example
+# Examples
 
-This is a simple function which greets the name provided as input.
+This is a simple function which greets the name provided as input. This code was generated using the above mentioned boilerplate code command.
 
 ```rust
-extern crate fdk;
-use std::process;
+use fdk::{Function, FunctionError, RuntimeContext};
+use tokio; // Tokio for handling future.
 
-fn main() {
-    let exit_code = fdk::Function::new(fdk::STATELESS)
-    .run(|_, i: String| {
-        Ok(format!("Hello, {}!\n",
-            if i.is_empty() { "world".to_string() } else { i }))
-    });
-    process::exit(exit_code);
+#[tokio::main]
+async fn main() -> Result<(), FunctionError> {
+    if let Err(e) = Function::run(|_: &mut RuntimeContext, i: String| {
+        Ok(format!(
+            "Hello {}!",
+            if i.is_empty() {
+                "world"
+            } else {
+                i.trim_end_matches("\n")
+            }
+        ))
+    })
+    .await
+    {
+        eprintln!("{}", e);
+    }
+    Ok(())
 }
 ```
-
-More examples are available in the [API Documentation](https://docs.rs/fdk).
