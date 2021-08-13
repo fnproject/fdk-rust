@@ -8,13 +8,14 @@ repository = "https://github.com/fnproject/fdk-rust"
 keywords = ["Fn", "serverless", "FaaS"]
 categories = ["web-programming", "development-tools"]
 license = "Apache-2.0"
+build = "src/build.rs"
 
 [badges]
 maintenance = { status = "experimental" }
 
 [dependencies]
 hyper = { version = "0.14", features = ["full"] }
-tokio = { version = "1.6", features = ["net"] }
+tokio = { version = "~1.10", features = ["net"] }
 futures = "0.3"
 object-pool = "0.5"
 lazy_static = "1"
@@ -27,3 +28,6 @@ serde_plain = "0.3"
 serde_urlencoded = "0.7"
 clap = "2"
 thiserror = "1"
+
+[build-dependencies]
+built = "0.5.1"

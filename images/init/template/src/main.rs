@@ -1,8 +1,8 @@
-use fdk::{Function, FunctionError, RuntimeContext};
+use fdk::{Function, FunctionError, Result, RuntimeContext};
 use tokio;
 
 #[tokio::main]
-async fn main() -> Result<(), FunctionError> {
+async fn main() -> Result<()> {
     if let Err(e) = Function::run(|_: &mut RuntimeContext, i: String| {
         Ok(format!(
             "Hello {}!",
